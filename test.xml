@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xi="http://www.w3.org/2001/XInclude"
+      xmlns:py="http://genshi.edgewall.org/"
+      py:strip="True"
+      >
+    <xi:include href="../../solariwsgi/markdown.xhtml"/>
+    <py:def function="input_obj(obj, type, name, *args, **kwargs)">
+        <py:with vars="pre = kwargs.get('prefix', '')">
+            <input type="$type" name="$pre$name" value="${getattr(obj, name, '')}" py:if="type in ('text', 'password', 'button', 'submit')"/>
+            <py:if test="type == 'checkbox'">
+                <input type="hidden" name="checkboxes" value="$pre$name"/>
+                <input type="checkbox" name="$pre$name" py:attrs="{'checked': 1} if obj is not None and getattr(obj, name) else {}"/>
+            </py:if>
+            <py:if test="type == 'select'">
+                <select name="$pre$name">
+                    <py:for each="value, text in kwargs['options']">
+                        <option value="$value" py:attrs="{'selected': 1} if obj is not None and getattr(obj, name) == value else {}">$text</option>
+                    </py:for>
+                </select>
+            </py:if>
+            <textarea name="$pre$name" py:if="type in ('textarea',)">${getattr(obj, name, '')}</textarea>
+        </py:with>
+    </py:def>
+
+    <py:def function="tr_hazardView(hazard, risk, ha, eo_str='')">
+        <tr class="ranking${ha.ranking if ha and ha.applicable else 0} $eo_str" id="tr_hazard_${hazard.slug}">
+            <td>${hazard.text}</td>
+            <td>${'Yes' if ha and ha.applicable else 'No'}${', {}'.format(ha.ranking) if ha and ha.applicable else ''}</td>
+            <!--<td>${', '.join(str(x) for x in [ha.e, ha.x, ha.p, ha.a]) if ha and ha.applicable else ''}</td>-->
+            <td>${'{}, {}'.format(ha.pLabel[ha.p], ha.sLabel[ha.s]) if ha and ha.applicable else ''}</td>
+            <!--<td>${ha.sLabel[ha.s] if ha and ha.applicable else ''}</td>-->
+            <!--<td>${ha.ranking if ha and ha.applicable else ''}</td>-->
+            <td>${ha.resolution if ha else ''}</td>
+
+            <script>
+                $('#tr_hazard_${hazard.slug}').dblclick(function () {
+                    $.ajax({
+                        url: '${urlfor('alm.risk.hazard.edit', slug=hazard.slug)}',
+                        dataType: 'json',
+                        data: {},
+                        success: process
+                    });
+                });
+            </script>
+        </tr>
+    </py:def>
+
+    <py:def function="tr_hazardEdit(hazard, risk, ha, eo_str='')">
+        <tr class="ranking${ha.ranking if ha else 0} $eo_str" id="tr_hazard_${hazard.slug}">
+            <td>${hazard.text}</td>
+            <td py:content="input_obj(ha, 'checkbox', 'applicable', prefix=hazard.slug + '_')"/>
+            <td>
+                <!--<span py:replace="input_obj(ha, 'select', 'e', options=[(1,1), (2,2), (3,3)], prefix=hazard.slug + '_')"/>-->
+                <!--<span py:replace="input_obj(ha, 'select', 'x', options=[(1,1), (2,2)], prefix=hazard.slug + '_')"/>-->
+                <span py:replace="input_obj(ha, 'select', 'p', options=itertools.izip(HazardAssessment.pRange, HazardAssessment.pLabel[1:]), prefix=hazard.slug + '_')"/>
+            <!--</td>-->
+            <!--<td>-->
+                <span py:replace="input_obj(ha, 'select', 's', options=itertools.izip(HazardAssessment.sRange, HazardAssessment.sLabel[1:]), prefix=hazard.slug + '_')"/>
+            </td>
+            <!--<td>- -</td>-->
+            <td>
+                <input py:replace="input_obj(ha, 'text', 'resolution', prefix=hazard.slug + '_')"/><br/>
+                <input type="submit" name="_" value="Save" id="save_hazard_${hazard.slug}"/>
+
+            </td>
+            <script>
+                $('#save_hazard_${hazard.slug}').click(function () {
+                    $.ajax({
+                        url: '${urlfor('alm.risk.hazard.save', slug=hazard.slug)}',
+                        dataType: 'json',
+                        data: collectAll('#tr_hazard_${hazard.slug}'),
+                        success: process
+                    });
+                });
+            </script>
+        </tr>
+    </py:def>
+
+    <py:def function="div_textView(risk, name)">
+        <div id="$name">
+            <div py:replace="md(getattr(risk, name, ''))"/>
+            <div py:if="not getattr(risk, name, '')">(Edit)</div>
+
+            <script>
+                $('#${name}').dblclick(function () {
+                    $.ajax({
+                        url: '${urlfor('alm.risk.text.edit', name=name)}',
+                        dataType: 'json',
+                        data: {},
+                        success: process
+                    });
+                });
+            </script>
+        </div>
+    </py:def>
+
+    <py:def function="div_textEdit(risk, name)">
+        <div id="$name">
+            <div py:replace="input_obj(risk, 'textarea', name)"/>
+            <input type="submit" name="_" value="Save" id="save_text_${name}"/>
+
+            <script>
+                $('#save_text_${name}').click(function () {
+                    $.ajax({
+                        url: '${urlfor('alm.risk.text.save', name=name)}',
+                        dataType: 'json',
+                        data: collectAll('#${name}'),
+                        success: process
+                    });
+                });
+            </script>
+        </div>
+    </py:def>
+
+
+
+
+    <py:def function="tr_questionView(question, risk, answer, eo_str='')">
+        <tr class="$eo_str" id="tr_question_${question.slug}">
+            <td>${question.text}</td>
+            <td>${'Yes' if answer and answer.answer else 'No'}</td>
+            <td>${answer.details if answer else ''}</td>
+
+            <script>
+                $('#tr_question_${question.slug}').dblclick(function () {
+                    $.ajax({
+                        url: '${urlfor('alm.risk.question.edit', slug=question.slug)}',
+                        dataType: 'json',
+                        data: {},
+                        success: process
+                    });
+                });
+            </script>
+        </tr>
+    </py:def>
+
+    <py:def function="tr_questionEdit(question, risk, answer, eo_str='')">
+        <tr class="$eo_str" id="tr_question_${question.slug}">
+            <td>${question.text}</td>
+            <td py:content="input_obj(answer, 'checkbox', 'answer', prefix=question.slug + '_')"/>
+            <td>
+                <input py:replace="input_obj(answer, 'text', 'details', prefix=question.slug + '_')"/><br/>
+                <input type="submit" name="_" value="Save" id="save_question_${question.slug}"/>
+
+            </td>
+            <script>
+                $('#save_question_${question.slug}').click(function () {
+                    $.ajax({
+                        url: '${urlfor('alm.risk.question.save', slug=question.slug)}',
+                        dataType: 'json',
+                        data: collectAll('#tr_question_${question.slug}'),
+                        success: process
+                    });
+                });
+            </script>
+        </tr>
+    </py:def>
+</html>

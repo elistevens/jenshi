@@ -1,0 +1,45 @@
+<html>
+    <head>
+        <script src="jenshi.js"></script>
+    </head>
+    <body>
+        <div id="input">
+        </div>
+        <div id="output">
+            foo
+        </div>
+
+        <script>
+        //alert(document.getElementById('input').children[0].nodeName);
+
+
+var parser=new DOMParser();
+var xmlDoc=parser.parseFromString(test_xml, "text/xml");
+
+var s = '';
+function domwalk(node, indent) {
+    s += '\n' + indent + ': ' + node + ' ' + node.nodeType;
+
+    for (var i=0; i<node.childNodes.length; i++) {
+        domwalk(node.childNodes[i], indent + '  ' + i + ': ');
+    }
+}
+domwalk(xmlDoc, '');
+//alert(s);
+
+//alert(typeof xmlDoc.childNodes[1])
+alert('false' || 'true');
+
+document.getElementById('output').appendChild(Jenshi.generate(xmlDoc.childNodes[1], {xx:'foo'}));
+
+        //var xhttp=new XMLHttpRequest();
+        //xhttp.open("GET",'test1.xml',false);
+        //xhttp.send();
+        //
+        //document.getElementById('x').appendChild(Jenshi.render(xhttp.responseXML, {}))
+
+        </script>
+
+
+    </body>
+</html>
